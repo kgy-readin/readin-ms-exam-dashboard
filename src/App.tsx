@@ -19,7 +19,9 @@ import {
   AlertCircle,
   TrendingUp,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  CheckCircle,
+  Search
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import Papa from "papaparse";
@@ -36,6 +38,7 @@ export default function App() {
   const [itemLabels, setItemLabels] = useState<string[]>([]);
   const [itemKeys, setItemKeys] = useState<string[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(null);
+  const [studentNameInput, setStudentNameInput] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState(false);
@@ -172,12 +175,18 @@ export default function App() {
   }, []);
 
   const handleLogin = () => {
-    if (!selectedStudent) return;
+    const student = students.find(s => s.name === studentNameInput);
+    if (!student) {
+      setLoginError(true);
+      return;
+    }
+    
     const inputPw = String(password);
-    const studentPw = String(selectedStudent.password);
-    const masterPw = String(selectedStudent.masterPassword);
+    const studentPw = String(student.password);
+    const masterPw = String(student.masterPassword);
 
-    if (inputPw === studentPw || (selectedStudent.masterPassword && inputPw === masterPw)) {
+    if (inputPw === studentPw || (student.masterPassword && inputPw === masterPw)) {
+      setSelectedStudent(student);
       setIsAuthenticated(true);
       setLoginError(false);
     } else {
@@ -189,6 +198,7 @@ export default function App() {
     setIsAuthenticated(false);
     setPassword("");
     setSelectedStudent(null);
+    setStudentNameInput("");
   };
 
   // Filter progress for the authenticated student
@@ -212,13 +222,25 @@ export default function App() {
       const values = validItemKeys
         .map(key => p[key])
         .filter((val): val is number => typeof val === "number");
+      
+      const completedItems = validItemKeys
+        .filter(key => {
+          const val = p[key];
+          return typeof val === "number" && val >= 100;
+        })
+        .map(key => {
+          const labelIndex = itemKeys.indexOf(key);
+          return itemLabels[labelIndex];
+        });
+
       const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
       return {
         unit: p.unit,
         average: Math.round(avg),
+        completedList: completedItems.length > 0 ? completedItems.join(", ") : "없음"
       };
     });
-  }, [studentProgress, validItemKeys]);
+  }, [studentProgress, validItemKeys, itemKeys, itemLabels]);
 
   // Chart B: Item-wise average across all units
   const itemChartData = useMemo(() => {
@@ -229,10 +251,19 @@ export default function App() {
       const values = studentProgress
         .map(p => p[key])
         .filter((val): val is number => typeof val === "number");
+      
+      const completedUnits = studentProgress
+        .filter(p => {
+          const val = p[key];
+          return typeof val === "number" && val >= 100;
+        })
+        .map(p => p.unit.length > 4 ? p.unit.substring(0, 4) : p.unit);
+
       const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
       return {
         item: itemLabels[labelIndex],
         average: Math.round(avg),
+        completedList: completedUnits.length > 0 ? completedUnits.join(", ") : "없음"
       };
     });
   }, [studentProgress, validItemKeys, itemKeys, itemLabels]);
@@ -311,21 +342,15 @@ export default function App() {
 
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">학생 이름</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">학생명</label>
                   <div className="relative">
-                    <select 
-                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none transition-all"
-                      onChange={(e) => {
-                        const student = students.find(s => s.name === e.target.value);
-                        setSelectedStudent(student || null);
-                      }}
-                      value={selectedStudent?.name || ""}
-                    >
-                      <option value="">학생을 선택해 주세요</option>
-                      {students.map(s => (
-                        <option key={s.name} value={s.name}>{s.name}</option>
-                      ))}
-                    </select>
+                    <input 
+                      type="text"
+                      placeholder="학생 이름을 입력해 주세요"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      value={studentNameInput}
+                      onChange={(e) => setStudentNameInput(e.target.value)}
+                    />
                     <User className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
                   </div>
                 </div>
@@ -366,7 +391,7 @@ export default function App() {
             <header className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-blue-600 font-semibold">
-                  <BookOpen className="w-5 h-5" />
+                  <GraduationCap className="w-5 h-5" />
                   <span>{selectedStudent?.school} {selectedStudent?.grade}</span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
@@ -441,7 +466,7 @@ export default function App() {
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 h-full">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      <BookOpen className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">단원별 진행률</h2>
@@ -473,12 +498,23 @@ export default function App() {
                         />
                         <Tooltip 
                           cursor={{ fill: '#f8fafc' }}
-                          formatter={(value: number) => [`${value}%`, "진행률"]}
-                          contentStyle={{ 
-                            borderRadius: '16px', 
-                            border: 'none', 
-                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                            padding: '12px'
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 max-w-[200px]">
+                                  <p className="font-bold text-slate-900 mb-1">{data.unit}</p>
+                                  <p className="text-blue-600 font-bold text-lg mb-2">진행률: {data.average}%</p>
+                                  <div className="pt-2 border-t border-slate-50">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">완료 항목</p>
+                                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                                      {data.completedList}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
                           }}
                         />
                         <Bar 
@@ -501,7 +537,7 @@ export default function App() {
                 <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-slate-100 h-full">
                   <div className="flex items-center gap-3 mb-8">
                     <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center">
-                      <BookOpen className="w-5 h-5 text-indigo-600" />
+                      <CheckCircle className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-slate-900">항목별 진행률</h2>
@@ -535,12 +571,23 @@ export default function App() {
                         />
                         <Tooltip 
                           cursor={{ fill: '#f8fafc' }}
-                          formatter={(value: number) => [`${value}%`, "진행률"]}
-                          contentStyle={{ 
-                            borderRadius: '16px', 
-                            border: 'none', 
-                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                            padding: '12px'
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 max-w-[200px]">
+                                  <p className="font-bold text-slate-900 mb-1">{data.item}</p>
+                                  <p className="text-indigo-600 font-bold text-lg mb-2">진행률: {data.average}%</p>
+                                  <div className="pt-2 border-t border-slate-50">
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">완료 단원</p>
+                                    <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                                      {data.completedList}
+                                    </p>
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
                           }}
                         />
                         <Bar 
@@ -562,8 +609,13 @@ export default function App() {
             {/* Detail Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-6 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="font-bold text-slate-900">단원별 한 눈에 보기</h3>
-                <span className="text-[10px] text-slate-300">v2026.04.03.09</span>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                    <Search className="w-5 h-5 text-slate-600" />
+                  </div>
+                  <h3 className="font-bold text-slate-900">단원별 한 눈에 보기</h3>
+                </div>
+                <span className="text-[10px] text-slate-300">v2026.04.03.14</span>
               </div>
               
               {/* Desktop Table */}
