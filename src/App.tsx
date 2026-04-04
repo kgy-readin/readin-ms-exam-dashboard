@@ -39,6 +39,7 @@ export default function App() {
   const [itemLabels, setItemLabels] = useState<string[]>([]);
   const [itemKeys, setItemKeys] = useState<string[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(null);
+  const [adminViewStudent, setAdminViewStudent] = useState<StudentInfo | null>(null);
   const [studentNameInput, setStudentNameInput] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -67,19 +68,20 @@ export default function App() {
       
       const infoData = Papa.parse<string[]>(infoCsv, { header: false }).data;
       const headerRow = infoData[0] || [];
+      const trimmedHeaderRow = headerRow.map(h => (h || "").toString().trim());
       
       // Find column indices
-      const nameIdx = headerRow.indexOf("이름");
-      const schoolIdx = headerRow.indexOf("학교");
-      const gradeIdx = headerRow.indexOf("학년");
-      const dateIdx = headerRow.findIndex(col => col.startsWith("날짜("));
-      const reportIdx = headerRow.indexOf("숙제 리포트 url");
-      const pwIdx = headerRow.indexOf("비밀번호");
-      const masterPwIdx = headerRow.indexOf("마스터 비밀번호");
+      const nameIdx = trimmedHeaderRow.indexOf("이름");
+      const schoolIdx = trimmedHeaderRow.indexOf("학교");
+      const gradeIdx = trimmedHeaderRow.indexOf("학년");
+      const dateIdx = trimmedHeaderRow.findIndex(col => col.startsWith("날짜("));
+      const reportIdx = trimmedHeaderRow.indexOf("숙제 리포트 url");
+      const pwIdx = trimmedHeaderRow.indexOf("비밀번호");
+      const masterPwIdx = trimmedHeaderRow.indexOf("마스터 비밀번호");
 
       let examName = "시험";
       if (dateIdx !== -1) {
-        const match = headerRow[dateIdx].match(/\((.*)\)/);
+        const match = trimmedHeaderRow[dateIdx].match(/\((.*)\)/);
         if (match) examName = match[1];
       }
 
@@ -87,13 +89,13 @@ export default function App() {
       const parsedStudents: StudentInfo[] = infoData.slice(1)
         .filter(row => row[nameIdx !== -1 ? nameIdx : 0]) // Filter empty rows
         .map(row => ({
-          name: row[nameIdx !== -1 ? nameIdx : 0],
+          name: (row[nameIdx !== -1 ? nameIdx : 0] || "").toString().trim(),
           school: row[schoolIdx !== -1 ? schoolIdx : 1],
           grade: row[gradeIdx !== -1 ? gradeIdx : 2],
           midtermDate: row[dateIdx !== -1 ? dateIdx : 3],
           reportUrl: row[reportIdx !== -1 ? reportIdx : 4],
-          password: row[pwIdx !== -1 ? pwIdx : 5],
-          masterPassword: row[masterPwIdx !== -1 ? masterPwIdx : -1],
+          password: (row[pwIdx !== -1 ? pwIdx : 5] || "").toString().trim(),
+          masterPassword: (masterPwIdx !== -1 ? (row[masterPwIdx] || "") : "").toString().trim(),
           examName: examName
         }))
         .sort((a, b) => a.name.localeCompare(b.name, "ko"));
@@ -169,7 +171,14 @@ export default function App() {
       // Update selected student if already logged in to sync with latest data
       if (selectedStudent) {
         const updated = parsedStudents.find(s => s.name === selectedStudent.name);
-        if (updated) setSelectedStudent(updated);
+        if (updated) {
+          setSelectedStudent(updated);
+          // If admin, also update the viewed student if it exists
+          if (updated.name === "관리자" && adminViewStudent) {
+            const updatedAdminView = parsedStudents.find(s => s.name === adminViewStudent.name);
+            if (updatedAdminView) setAdminViewStudent(updatedAdminView);
+          }
+        }
       }
     } catch (err) {
       console.error("Data fetch error:", err);
@@ -185,17 +194,22 @@ export default function App() {
   }, []);
 
   const handleLogin = () => {
-    const student = students.find(s => s.name === studentNameInput);
+    const trimmedInputName = studentNameInput.trim();
+    const student = students.find(s => s.name === trimmedInputName);
+    
     if (!student) {
       setLoginError(true);
       return;
     }
     
-    const inputPw = String(password);
-    const studentPw = String(student.password);
-    const masterPw = String(student.masterPassword);
+    const inputPw = String(password).trim();
+    const studentPw = String(student.password || "").trim();
+    const masterPw = String(student.masterPassword || "").trim();
 
-    if (inputPw === studentPw || (student.masterPassword && inputPw === masterPw)) {
+    const isStudentPwMatch = studentPw !== "" && inputPw === studentPw;
+    const isMasterPwMatch = masterPw !== "" && inputPw === masterPw;
+
+    if (isStudentPwMatch || isMasterPwMatch) {
       setSelectedStudent(student);
       setIsAuthenticated(true);
       setLoginError(false);
@@ -208,14 +222,18 @@ export default function App() {
     setIsAuthenticated(false);
     setPassword("");
     setSelectedStudent(null);
+    setAdminViewStudent(null);
     setStudentNameInput("");
   };
 
-  // Filter progress for the authenticated student
+  const isAdmin = selectedStudent?.name === "관리자";
+  const currentViewStudent = isAdmin ? adminViewStudent : selectedStudent;
+
+  // Filter progress for the authenticated student (or selected student for admin)
   const studentProgress = useMemo(() => {
-    if (!selectedStudent) return [];
-    return allProgress.filter(p => p.name === selectedStudent.name);
-  }, [allProgress, selectedStudent]);
+    if (!currentViewStudent) return [];
+    return allProgress.filter(p => p.name === currentViewStudent.name);
+  }, [allProgress, currentViewStudent]);
 
   // Identify keys that are NOT "해당없음" for at least one unit for THIS student
   // If all units for the selected student are "해당없음" (-), the entire column/item is excluded.
@@ -290,14 +308,14 @@ export default function App() {
 
   // Calculate D-Day
   const dDay = useMemo(() => {
-    if (!selectedStudent?.midtermDate) return null;
-    const target = new Date(selectedStudent.midtermDate);
+    if (!currentViewStudent?.midtermDate) return null;
+    const target = new Date(currentViewStudent.midtermDate);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const diff = target.getTime() - today.getTime();
     const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
     return days;
-  }, [selectedStudent]);
+  }, [currentViewStudent]);
 
   if (loading) {
     return (
@@ -382,7 +400,7 @@ export default function App() {
 
                 <button 
                   onClick={handleLogin}
-                  disabled={!selectedStudent || !password}
+                  disabled={!studentNameInput || !password}
                   className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-200"
                 >
                   확인
@@ -402,25 +420,49 @@ export default function App() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-blue-600 font-semibold">
                   <GraduationCap className="w-5 h-5" />
-                  <span>{selectedStudent?.school} {selectedStudent?.grade}</span>
+                  <span>
+                    {isAdmin ? "내신 대비 대시보드" : `${currentViewStudent?.school} ${currentViewStudent?.grade}`}
+                  </span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-                  {selectedStudent?.name} 학생 내신 대비
+                  {isAdmin ? "학생별 내신 대비 대시보드" : `${currentViewStudent?.name} 학생 내신 대비`}
                 </h1>
               </div>
 
               <div className="flex items-center gap-3">
-                {selectedStudent?.reportUrl && (
-                  <a 
-                    href={selectedStudent.reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-2"
-                    title="숙제 리포트 보기"
-                  >
-                    <Link className="w-6 h-6" />
-                    <span className="font-semibold text-sm">숙제 리포트</span>
-                  </a>
+                {isAdmin ? (
+                  <div className="relative">
+                    <select 
+                      className="pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none transition-all font-semibold text-sm text-slate-700"
+                      onChange={(e) => {
+                        const student = students.find(s => s.name === e.target.value);
+                        setAdminViewStudent(student || null);
+                      }}
+                      value={adminViewStudent?.name || ""}
+                    >
+                      <option value="">학생 선택</option>
+                      {students
+                        .filter(s => s.name !== "관리자")
+                        .map(s => (
+                          <option key={s.name} value={s.name}>{s.name}</option>
+                        ))
+                      }
+                    </select>
+                    <User className="absolute left-3 top-3.5 w-5 h-5 text-slate-400" />
+                  </div>
+                ) : (
+                  currentViewStudent?.reportUrl && (
+                    <a 
+                      href={currentViewStudent.reportUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all shadow-sm border border-blue-100 flex items-center justify-center gap-2"
+                      title="숙제 리포트 보기"
+                    >
+                      <Link className="w-6 h-6" />
+                      <span className="font-semibold text-sm">숙제 리포트</span>
+                    </a>
+                  )
                 )}
 
                 <button 
@@ -442,25 +484,27 @@ export default function App() {
               </div>
             </header>
 
-            {/* Stats & Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* 1. D-Day Block */}
-              <div className="order-1">
-                <div className="bg-blue-50 p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between h-full">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0">
-                      <Calendar className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <p className="text-blue-600 font-medium text-sm md:text-base">지필평가 D-Day</p>
-                      <h3 className="text-lg md:text-2xl font-bold text-slate-900">{selectedStudent?.examName || "시험"}까지</h3>
+            {/* Stats & Charts Grid (Only show if a student is selected or it's a regular student) */}
+            {(currentViewStudent && currentViewStudent.name !== "리드인내신") ? (
+              <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* 1. D-Day Block */}
+                  <div className="order-1">
+                    <div className="bg-blue-50 p-6 rounded-3xl shadow-sm border border-blue-100 flex items-center justify-between h-full">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shrink-0">
+                          <Calendar className="w-6 h-6" />
+                        </div>
+                        <div>
+                          <p className="text-blue-600 font-medium text-sm md:text-base">지필평가 D-Day</p>
+                          <h3 className="text-lg md:text-2xl font-bold text-slate-900">{currentViewStudent?.examName || "시험"}까지</h3>
+                        </div>
+                      </div>
+                      <div className="text-2xl md:text-4xl font-black text-blue-600">
+                        {dDay !== null ? (dDay > 0 ? `D-${dDay}` : dDay === 0 ? "D-Day" : `D+${Math.abs(dDay)}`) : "-"}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-2xl md:text-4xl font-black text-blue-600">
-                    {dDay !== null ? (dDay > 0 ? `D-${dDay}` : dDay === 0 ? "D-Day" : `D+${Math.abs(dDay)}`) : "-"}
-                  </div>
-                </div>
-              </div>
 
               {/* 2. Total Progress Block */}
               <div className="order-2">
@@ -634,7 +678,7 @@ export default function App() {
                   </div>
                   <h3 className="font-bold text-slate-900">단원별 한 눈에 보기</h3>
                 </div>
-                <span className="text-[10px] text-slate-300">v2026.04.04.03</span>
+                <span className="text-[10px] text-slate-300">v2026.04.04.08</span>
               </div>
               
               {/* Desktop Table */}
@@ -747,8 +791,18 @@ export default function App() {
                 </table>
               </div>
             </div>
+          </>
+        ) : (
+          <div className="bg-white p-12 rounded-3xl shadow-sm border border-slate-100 text-center">
+            <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+              <User className="w-10 h-10 text-blue-400" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">학생을 선택해 주세요</h2>
+            <p className="text-slate-500">상단 드롭다운 메뉴에서 학습 현황을 확인할 학생을 선택해 주세요.</p>
+          </div>
+        )}
 
-            <footer className="text-center text-slate-400 text-sm py-8">
+        <footer className="text-center text-slate-400 text-sm py-8">
               &copy; 2026 리드인독서논술국어학원. All rights reserved.
             </footer>
           </motion.div>
