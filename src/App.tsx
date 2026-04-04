@@ -615,7 +615,7 @@ export default function App() {
                   </div>
                   <h3 className="font-bold text-slate-900">단원별 한 눈에 보기</h3>
                 </div>
-                <span className="text-[10px] text-slate-300">v2026.04.03.14</span>
+                <span className="text-[10px] text-slate-300">v2026.04.04.01</span>
               </div>
               
               {/* Desktop Table */}
@@ -679,7 +679,9 @@ export default function App() {
                     <tr className="bg-slate-50">
                       <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-10">항목</th>
                       {studentProgress.map((p, idx) => (
-                        <th key={idx} className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center whitespace-nowrap">{p.unit}</th>
+                        <th key={idx} className="p-4 text-xs font-bold text-slate-500 uppercase tracking-wider text-center whitespace-nowrap">
+                          {p.unit.length > 4 ? p.unit.substring(0, 4) : p.unit}
+                        </th>
                       ))}
                     </tr>
                   </thead>
