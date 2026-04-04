@@ -421,11 +421,11 @@ export default function App() {
                 <div className="flex items-center gap-2 text-blue-600 font-semibold">
                   <GraduationCap className="w-5 h-5" />
                   <span>
-                    {isAdmin ? "내신 대비 대시보드" : `${currentViewStudent?.school} ${currentViewStudent?.grade}`}
+                    {isAdmin ? "리드인 내신 대비 학습" : `${currentViewStudent?.school} ${currentViewStudent?.grade}`}
                   </span>
                 </div>
                 <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-                  {isAdmin ? "학생별 내신 대비 대시보드" : `${currentViewStudent?.name} 학생 내신 대비`}
+                  {isAdmin ? "학생별 대시보드" : `${currentViewStudent?.name} 학생 내신 대비`}
                 </h1>
               </div>
 
@@ -678,7 +678,7 @@ export default function App() {
                   </div>
                   <h3 className="font-bold text-slate-900">단원별 한 눈에 보기</h3>
                 </div>
-                <span className="text-[10px] text-slate-300">v2026.04.04.08</span>
+                <span className="text-[10px] text-slate-300">v2026.04.04.09</span>
               </div>
               
               {/* Desktop Table */}
