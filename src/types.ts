@@ -7,6 +7,7 @@ export interface StudentInfo {
   password?: string;
   masterPassword?: string;
   examName?: string;
+  classGroup?: string;
 }
 
 export interface ProgressData {
