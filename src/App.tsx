@@ -499,7 +499,7 @@ export default function App() {
                 <div className="flex items-center gap-2 text-blue-600 font-semibold">
                   <GraduationCap className="w-5 h-5" />
                   <span>
-                    {isAdmin ? "리드인 내신 대비 학습" : `${currentViewStudent?.school} ${currentViewStudent?.grade}`}
+                    {isAdmin ? "리드인 내신 대비 대시보드" : `${currentViewStudent?.school} ${currentViewStudent?.grade}`}
                   </span>
                 </div>
                 <h1 className="text-[24px] md:text-[28px] font-bold text-slate-900">
