@@ -8,6 +8,7 @@ export interface StudentInfo {
   masterPassword?: string;
   examName?: string;
   classGroup?: string;
+  timetable?: string;
 }
 
 export interface ProgressData {

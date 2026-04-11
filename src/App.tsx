@@ -34,7 +34,7 @@ import {
 } from "./types";
 
 const SPREADSHEET_ID = "1xIlvxq4h1riV2BucwMKjcE2wmqm64xir2r_KyFTdp94";
-const APP_VERSION = "Logos 2.4.1";
+const APP_VERSION = "Logos 2.5.1";
 
 export default function App() {
   const [students, setStudents] = useState<StudentInfo[]>([]);
@@ -93,6 +93,7 @@ export default function App() {
       const pwIdx = trimmedHeaderRow.indexOf("비밀번호");
       const masterPwIdx = trimmedHeaderRow.indexOf("마스터 비밀번호");
       const classIdx = trimmedHeaderRow.indexOf("소속");
+      const timetableIdx = trimmedHeaderRow.indexOf("시간표");
 
       let examName = "시험";
       if (dateIdx !== -1) {
@@ -112,7 +113,8 @@ export default function App() {
           password: (row[pwIdx !== -1 ? pwIdx : 5] || "").toString().trim(),
           masterPassword: (masterPwIdx !== -1 ? (row[masterPwIdx] || "") : "").toString().trim(),
           examName: examName,
-          classGroup: classIdx !== -1 ? (row[classIdx] || "").toString().trim() : ""
+          classGroup: classIdx !== -1 ? (row[classIdx] || "").toString().trim() : "",
+          timetable: timetableIdx !== -1 ? (row[timetableIdx] || "").toString().trim() : ""
         }))
         .sort((a, b) => a.name.localeCompare(b.name, "ko"));
       setStudents(parsedStudents);
@@ -395,6 +397,20 @@ export default function App() {
     return days;
   }, [currentViewStudent]);
 
+  const formattedExamInfo = useMemo(() => {
+    if (!currentViewStudent?.midtermDate) return "지필평가 D-Day";
+    try {
+      const date = new Date(currentViewStudent.midtermDate);
+      if (isNaN(date.getTime())) return "지필평가 D-Day";
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      const timetable = currentViewStudent.timetable || "";
+      return `${month}월 ${day}일 ${timetable}`.trim().replace(/\s+/g, ' ');
+    } catch (e) {
+      return "지필평가 D-Day";
+    }
+  }, [currentViewStudent]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -596,7 +612,7 @@ export default function App() {
                           <Calendar className="w-6 h-6" />
                         </div>
                         <div>
-                          <p className="text-blue-600 font-medium text-[15px]">지필평가 D-Day</p>
+                          <p className="text-blue-600 font-medium text-[15px]">{formattedExamInfo}</p>
                           <h3 className="text-[21px] md:text-[23px] font-bold text-slate-900 leading-tight">{currentViewStudent?.examName || "시험"}까지</h3>
                         </div>
                       </div>
