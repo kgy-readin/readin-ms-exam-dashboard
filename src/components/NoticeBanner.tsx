@@ -81,7 +81,7 @@ export const NoticeBanner = ({
           setIsNoticeExpanded(!isNoticeExpanded);
         }
       }}
-      className={`bg-white px-6 rounded-2xl shadow-sm border border-slate-100 mb-[15px] overflow-hidden w-full ${isNoticeExpanded ? "py-5" : "h-[52px] flex items-center"} ${(canExpandNotice || isNoticeExpanded) ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}`}
+      className={`bg-white px-6 rounded-2xl shadow-sm border border-slate-100 overflow-hidden w-full ${isNoticeExpanded ? "py-5" : "h-[52px] flex items-center"} ${(canExpandNotice || isNoticeExpanded) ? "cursor-pointer hover:bg-slate-50" : "cursor-default"}`}
     >
       <div className={`flex flex-col w-full ${isNoticeExpanded ? "gap-3" : ""}`}>
         <div className="flex items-center gap-2.5 min-w-0">
