@@ -506,25 +506,8 @@ export default function App() {
             key="dashboard"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="max-w-6xl mx-auto p-4 md:p-8 space-y-8"
+            className="max-w-6xl mx-auto p-4 md:p-8"
           >
-            <NoticeBanner 
-              isAdmin={isAdmin}
-              adminViewStudent={adminViewStudent}
-              currentViewStudent={currentViewStudent}
-              isNoticeExpanded={isNoticeExpanded}
-              setIsNoticeExpanded={setIsNoticeExpanded}
-              canExpandNotice={canExpandNotice}
-              setCanExpandNotice={setCanExpandNotice}
-              isEditingNotice={isEditingNotice}
-              setIsEditingNotice={setIsEditingNotice}
-              editNoticeText={editNoticeText}
-              setEditNoticeText={setEditNoticeText}
-              isUpdatingNotice={isUpdatingNotice}
-              handleUpdateNotice={handleUpdateNotice}
-              handleToggleNoticeLock={handleToggleNoticeLock}
-            />
-
             <DashboardHeader 
               isAdmin={isAdmin}
               currentViewStudent={currentViewStudent}
@@ -539,46 +522,67 @@ export default function App() {
               handleLogout={handleLogout}
             />
 
-            {currentViewStudent ? (
-              <>
-                <StatsCards 
-                  currentViewStudent={currentViewStudent}
-                  formattedExamInfo={formattedExamInfo}
-                  dDay={dDay}
-                  totalProgress={totalProgress}
-                />
+            <div className="mt-4 mb-8">
+              <NoticeBanner 
+                isAdmin={isAdmin}
+                adminViewStudent={adminViewStudent}
+                currentViewStudent={currentViewStudent}
+                isNoticeExpanded={isNoticeExpanded}
+                setIsNoticeExpanded={setIsNoticeExpanded}
+                canExpandNotice={canExpandNotice}
+                setCanExpandNotice={setCanExpandNotice}
+                isEditingNotice={isEditingNotice}
+                setIsEditingNotice={setIsEditingNotice}
+                editNoticeText={editNoticeText}
+                setEditNoticeText={setEditNoticeText}
+                isUpdatingNotice={isUpdatingNotice}
+                handleUpdateNotice={handleUpdateNotice}
+                handleToggleNoticeLock={handleToggleNoticeLock}
+              />
+            </div>
 
-                <ProgressCharts 
-                  isAdmin={isAdmin}
-                  currentViewStudent={currentViewStudent}
-                  loading={loading}
-                  unitChartData={unitChartData}
-                  itemChartData={itemChartData}
-                />
+            <div className="space-y-8">
+              {currentViewStudent ? (
+                <>
+                  <StatsCards 
+                    currentViewStudent={currentViewStudent}
+                    formattedExamInfo={formattedExamInfo}
+                    dDay={dDay}
+                    totalProgress={totalProgress}
+                  />
 
-                <ProgressTable 
-                  isAdmin={isAdmin}
-                  adminViewStudent={adminViewStudent}
-                  studentProgress={studentProgress}
-                  validItemKeys={validItemKeys}
-                  itemKeys={itemKeys}
-                  itemLabels={itemLabels}
-                  pendingEdits={pendingEdits}
-                  setPendingEdits={setPendingEdits}
-                  isSaving={isSaving}
-                  handleSaveEdits={handleSaveEdits}
-                  handleEditChange={handleEditChange}
-                />
-              </>
-            ) : (
-              <div className="bg-white p-12 rounded-3xl shadow-sm border border-slate-100 text-center">
-                <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <User className="w-10 h-10 text-blue-400" />
+                  <ProgressCharts 
+                    isAdmin={isAdmin}
+                    currentViewStudent={currentViewStudent}
+                    loading={loading}
+                    unitChartData={unitChartData}
+                    itemChartData={itemChartData}
+                  />
+
+                  <ProgressTable 
+                    isAdmin={isAdmin}
+                    adminViewStudent={adminViewStudent}
+                    studentProgress={studentProgress}
+                    validItemKeys={validItemKeys}
+                    itemKeys={itemKeys}
+                    itemLabels={itemLabels}
+                    pendingEdits={pendingEdits}
+                    setPendingEdits={setPendingEdits}
+                    isSaving={isSaving}
+                    handleSaveEdits={handleSaveEdits}
+                    handleEditChange={handleEditChange}
+                  />
+                </>
+              ) : (
+                <div className="bg-white p-12 rounded-3xl shadow-sm border border-slate-100 text-center">
+                  <div className="w-20 h-20 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <User className="w-10 h-10 text-blue-400" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-900 mb-2">학생을 선택해 주세요</h2>
+                  <p className="text-slate-500">상단 드롭다운 메뉴에서 학습 현황을 확인할 학생을 선택해 주세요.</p>
                 </div>
-                <h2 className="text-xl font-bold text-slate-900 mb-2">학생을 선택해 주세요</h2>
-                <p className="text-slate-500">상단 드롭다운 메뉴에서 학습 현황을 확인할 학생을 선택해 주세요.</p>
-              </div>
-            )}
+              )}
+            </div>
 
             <footer className="flex flex-col md:flex-row justify-between items-center gap-2 text-slate-400 text-xs py-8 px-4 font-suit">
               <span className="order-2 md:order-1 font-suit">&copy; 2026 리드인독서논술국어학원. All rights reserved.</span>
