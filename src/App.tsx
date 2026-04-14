@@ -4,9 +4,9 @@ import {
   motion
 } from "motion/react";
 import { 
-  Loader2, 
-  AlertCircle, 
-  User 
+  Loader2,
+  AlertCircle,
+  User
 } from "lucide-react";
 import Papa from "papaparse";
 import { 
@@ -156,12 +156,17 @@ export default function App() {
             const cleanVal = rawVal.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
             
             if (cleanVal === "") {
+              // Strictly empty cell -> Scheduled (예정)
               data[item.key] = 0;
             } else {
+              // Try numeric parsing (handle percentages)
               const numericPart = cleanVal.replace(/%/g, "").trim();
+              
+              // If it's a valid number
               if (numericPart !== "" && !isNaN(Number(numericPart)) && !/^[-‐‑‒–—―−]$/.test(cleanVal)) {
                 data[item.key] = Number(numericPart);
               } else {
+                // Any text, dash, or non-numeric value -> Not Applicable (-)
                 data[item.key] = "해당없음";
               }
             }
@@ -170,10 +175,12 @@ export default function App() {
         });
       setAllProgress(parsedProgress);
 
+      // Update selected student if already logged in to sync with latest data
       if (selectedStudent) {
         const updated = parsedStudents.find(s => s.name === selectedStudent.name);
         if (updated) {
           setSelectedStudent(updated);
+          // If admin, also update the viewed student if it exists
           if (updated.name === "관리자" && adminViewStudent) {
             const updatedAdminView = parsedStudents.find(s => s.name === adminViewStudent.name);
             if (updatedAdminView) setAdminViewStudent(updatedAdminView);
@@ -242,6 +249,7 @@ export default function App() {
     try {
       const updates = Object.entries(pendingEdits).map(([key, value]) => {
         const [studentName, unitName, itemKey] = key.split("|");
+        
         const keyIndex = itemKeys.indexOf(itemKey);
         const actualLabel = itemLabels[keyIndex]; 
 
@@ -339,6 +347,7 @@ export default function App() {
     }
   };
 
+
   const classGroups = useMemo(() => {
     const groups = new Set<string>();
     students.forEach(s => {
@@ -349,11 +358,14 @@ export default function App() {
     return ["전체", ...Array.from(groups).sort()];
   }, [students]);
 
+  // Filter progress for the authenticated student (or selected student for admin)
   const studentProgress = useMemo(() => {
     if (!currentViewStudent) return [];
     return allProgress.filter(p => p.name === currentViewStudent.name);
   }, [allProgress, currentViewStudent]);
 
+  // Identify keys that are NOT "해당없음" for at least one unit for THIS student
+  // If all units for the selected student are "해당없음" (-), the entire column/item is excluded.
   const validItemKeys = useMemo(() => {
     if (studentProgress.length === 0) return [];
     return itemKeys.filter(key => {
@@ -361,6 +373,7 @@ export default function App() {
     });
   }, [studentProgress, itemKeys]);
 
+  // Chart A: Unit-wise average
   const unitChartData = useMemo(() => {
     return studentProgress.map(p => {
       const values = validItemKeys
@@ -386,6 +399,7 @@ export default function App() {
     });
   }, [studentProgress, validItemKeys, itemKeys, itemLabels]);
 
+  // Chart B: Item-wise average across all units
   const itemChartData = useMemo(() => {
     if (studentProgress.length === 0) return [];
     
@@ -411,6 +425,7 @@ export default function App() {
     });
   }, [studentProgress, validItemKeys, itemKeys, itemLabels]);
 
+  // Calculate Total Progress
   const totalProgress = useMemo(() => {
     if (studentProgress.length === 0) return 0;
     const allValues = studentProgress.flatMap(p => 
@@ -420,6 +435,7 @@ export default function App() {
     return Math.round(allValues.reduce((a, b) => a + b, 0) / allValues.length);
   }, [studentProgress, validItemKeys]);
 
+  // Calculate D-Day
   const dDay = useMemo(() => {
     if (!currentViewStudent?.midtermDate) return null;
     const target = new Date(currentViewStudent.midtermDate);
