@@ -94,7 +94,7 @@ export const ProgressTable = ({
                         <select
                           value={displayVal}
                           onChange={(e) => handleEditChange(p.unit, key, e.target.value)}
-                          className={`w-[72px] px-1 py-1 text-center text-sm font-bold rounded-lg border transition-all focus:ring-2 focus:ring-indigo-200 outline-none appearance-none cursor-pointer ${
+                          className={`w-[64px] px-1 py-1 text-center text-sm font-bold rounded-lg border transition-all focus:ring-2 focus:ring-indigo-200 outline-none appearance-none cursor-pointer ${
                             isEdited 
                               ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
                               : val === 100
@@ -180,7 +180,7 @@ export const ProgressTable = ({
                           <select
                             value={displayVal}
                             onChange={(e) => handleEditChange(p.unit, key, e.target.value)}
-                            className={`w-[56px] px-0.5 py-1 text-center text-[10px] font-bold rounded-lg border transition-all outline-none appearance-none cursor-pointer ${
+                            className={`w-[48px] px-0.5 py-1 text-center text-[10px] font-bold rounded-lg border transition-all outline-none appearance-none cursor-pointer ${
                               isEdited 
                                 ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
                                 : val === 100
