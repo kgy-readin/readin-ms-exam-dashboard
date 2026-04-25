@@ -32,7 +32,7 @@ export default function App() {
   const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(null);
   const [adminViewStudent, setAdminViewStudent] = useState<StudentInfo | null>(null);
   const [selectedClassGroup, setSelectedClassGroup] = useState<string>("전체");
-  const [pendingEdits, setPendingEdits] = useState<Record<string, number>>({});
+  const [pendingEdits, setPendingEdits] = useState<Record<string, number | string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [studentNameInput, setStudentNameInput] = useState("");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -234,11 +234,14 @@ export default function App() {
   };
 
   const handleEditChange = (unitName: string, itemKey: string, value: string) => {
-    const numValue = Math.min(100, Math.max(0, parseInt(value) || 0));
+    let finalValue: number | string = value;
+    if (value !== "해당없음") {
+      finalValue = Math.min(100, Math.max(0, parseInt(value) || 0));
+    }
     const editKey = `${adminViewStudent?.name}|${unitName}|${itemKey}`;
     setPendingEdits(prev => ({
       ...prev,
-      [editKey]: numValue
+      [editKey]: finalValue
     }));
   };
 

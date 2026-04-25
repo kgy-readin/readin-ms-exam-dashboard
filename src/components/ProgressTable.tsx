@@ -8,8 +8,8 @@ interface ProgressTableProps {
   validItemKeys: string[];
   itemKeys: string[];
   itemLabels: string[];
-  pendingEdits: Record<string, number>;
-  setPendingEdits: (edits: Record<string, number>) => void;
+  pendingEdits: Record<string, number | string>;
+  setPendingEdits: (edits: Record<string, number | string>) => void;
   isSaving: boolean;
   handleSaveEdits: () => void;
   handleEditChange: (unit: string, key: string, value: string) => void;
@@ -91,21 +91,26 @@ export const ProgressTable = ({
                   if (isAdmin && adminViewStudent) {
                     return (
                       <td key={key} className="p-4 text-center">
-                        <input
-                          type="number"
-                          value={displayVal === "해당없음" ? "" : displayVal}
+                        <select
+                          value={displayVal}
                           onChange={(e) => handleEditChange(p.unit, key, e.target.value)}
-                          placeholder="-"
-                          className={`w-16 px-2 py-1 text-center text-sm font-bold rounded-lg border transition-all focus:ring-2 focus:ring-indigo-200 outline-none ${
+                          className={`w-[72px] px-1 py-1 text-center text-sm font-bold rounded-lg border transition-all focus:ring-2 focus:ring-indigo-200 outline-none appearance-none cursor-pointer ${
                             isEdited 
                               ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
                               : val === 100
                                 ? "bg-green-50 border-green-200 text-green-700"
                                 : typeof val === "number" && val > 0
                                   ? "bg-yellow-50 border-yellow-200 text-yellow-700"
-                                  : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
+                                  : val === "해당없음"
+                                    ? "bg-slate-50 border-slate-200 text-slate-400"
+                                    : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
                           }`}
-                        />
+                        >
+                          <option value="해당없음">-</option>
+                          {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => (
+                            <option key={n} value={n}>{n}</option>
+                          ))}
+                        </select>
                       </td>
                     );
                   }
@@ -172,20 +177,26 @@ export const ProgressTable = ({
                     if (isAdmin && adminViewStudent) {
                       return (
                         <td key={pIdx} className="p-4 text-center w-[76px] min-w-[76px]">
-                          <input
-                            type="number"
-                            value={displayVal === "해당없음" ? "" : displayVal}
+                          <select
+                            value={displayVal}
                             onChange={(e) => handleEditChange(p.unit, key, e.target.value)}
-                            className={`w-12 px-1 py-1 text-center text-[10px] font-bold rounded-lg border transition-all outline-none ${
+                            className={`w-[56px] px-0.5 py-1 text-center text-[10px] font-bold rounded-lg border transition-all outline-none appearance-none cursor-pointer ${
                               isEdited 
                                 ? "bg-indigo-50 border-indigo-200 text-indigo-700" 
                                 : val === 100
                                   ? "bg-green-50 border-green-200 text-green-700"
                                   : typeof val === "number" && val > 0
                                     ? "bg-yellow-50 border-yellow-200 text-yellow-700"
-                                    : "bg-slate-50 border-transparent text-slate-600"
+                                    : val === "해당없음"
+                                      ? "bg-slate-50 border-slate-200 text-slate-400"
+                                      : "bg-slate-50 border-transparent text-slate-600"
                             }`}
-                          />
+                          >
+                            <option value="해당없음">-</option>
+                            {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(n => (
+                              <option key={n} value={n}>{n}</option>
+                            ))}
+                          </select>
                         </td>
                       );
                     }
