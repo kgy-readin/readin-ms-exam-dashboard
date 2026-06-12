@@ -8,12 +8,13 @@ import {
   AlertCircle,
   User
 } from "lucide-react";
+import { BrowserRouter, Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
 import Papa from "papaparse";
 import { 
   StudentInfo, 
   ProgressData
 } from "./types";
-import { SPREADSHEET_ID, GAS_WEBAPP_URL, APP_VERSION } from "./constants";
+import { SPREADSHEET_ID, GAS_WEBAPP_URL, APP_VERSION, PUBLIC_SALT, ADMIN_SALT, generateHash } from "./constants";
 
 // Extracted Components
 import { Toast } from "./components/Toast";
@@ -24,7 +25,11 @@ import { StatsCards } from "./components/StatsCards";
 import { ProgressCharts } from "./components/ProgressCharts";
 import { ProgressTable } from "./components/ProgressTable";
 
-export default function App() {
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { publicId, adminId } = useParams();
+
   const [students, setStudents] = useState<StudentInfo[]>([]);
   const [allProgress, setAllProgress] = useState<ProgressData[]>([]);
   const [itemLabels, setItemLabels] = useState<string[]>([]);
@@ -90,23 +95,32 @@ export default function App() {
       }
 
       // Skip header row
-      const parsedStudents: StudentInfo[] = infoData.slice(1)
-        .filter(row => row[nameIdx !== -1 ? nameIdx : 0]) // Filter empty rows
-        .map(row => ({
-          name: (row[nameIdx !== -1 ? nameIdx : 0] || "").toString().trim(),
-          school: row[schoolIdx !== -1 ? schoolIdx : 1],
-          grade: row[gradeIdx !== -1 ? gradeIdx : 2],
-          midtermDate: row[dateIdx !== -1 ? dateIdx : 3],
-          reportUrl: row[reportIdx !== -1 ? reportIdx : 4],
-          password: (row[pwIdx !== -1 ? pwIdx : 5] || "").toString().trim(),
-          masterPassword: (masterPwIdx !== -1 ? (row[masterPwIdx] || "") : "").toString().trim(),
-          examName: examName,
-          classGroup: classIdx !== -1 ? (row[classIdx] || "").toString().trim() : "",
-          timetable: timetableIdx !== -1 ? (row[timetableIdx] || "").toString().trim() : "",
-          notice: noticeIdx !== -1 ? (row[noticeIdx] || "").toString().trim() : "",
-          noticeHidden: noticeHiddenIdx !== -1 ? (row[noticeHiddenIdx] || "").toString().trim().toLowerCase() === "true" : false
-        }))
-        .sort((a, b) => a.name.localeCompare(b.name, "ko"));
+      const parsedStudents: StudentInfo[] = await Promise.all(
+        infoData.slice(1)
+          .filter(row => row[nameIdx !== -1 ? nameIdx : 0]) // Filter empty rows
+          .map(async row => {
+            const name = (row[nameIdx !== -1 ? nameIdx : 0] || "").toString().trim();
+            const publicId = await generateHash(name, PUBLIC_SALT);
+            const adminId = await generateHash(name, ADMIN_SALT);
+            return {
+              name,
+              school: row[schoolIdx !== -1 ? schoolIdx : 1],
+              grade: row[gradeIdx !== -1 ? gradeIdx : 2],
+              midtermDate: row[dateIdx !== -1 ? dateIdx : 3],
+              reportUrl: row[reportIdx !== -1 ? reportIdx : 4],
+              password: (row[pwIdx !== -1 ? pwIdx : 5] || "").toString().trim(),
+              masterPassword: (masterPwIdx !== -1 ? (row[masterPwIdx] || "") : "").toString().trim(),
+              examName: examName,
+              classGroup: classIdx !== -1 ? (row[classIdx] || "").toString().trim() : "",
+              timetable: timetableIdx !== -1 ? (row[timetableIdx] || "").toString().trim() : "",
+              notice: noticeIdx !== -1 ? (row[noticeIdx] || "").toString().trim() : "",
+              noticeHidden: noticeHiddenIdx !== -1 ? (row[noticeHiddenIdx] || "").toString().trim().toLowerCase() === "true" : false,
+              publicId,
+              adminId
+            };
+          })
+      );
+      parsedStudents.sort((a, b) => a.name.localeCompare(b.name, "ko"));
       setStudents(parsedStudents);
 
       // Fetch Progress Sheet
@@ -199,6 +213,61 @@ export default function App() {
     fetchData(true);
   }, []);
 
+  // Sync URL routes with Authenticated State and selected student
+  useEffect(() => {
+    if (students.length === 0) return;
+
+    const path = location.pathname;
+
+    // 1. Student Direct Link Page (/student/:publicId)
+    if (path.startsWith("/student/") && publicId) {
+      const student = students.find(s => s.publicId === publicId);
+      if (student) {
+        setSelectedStudent(student);
+        setIsAuthenticated(true);
+        setLoginError(false);
+      } else {
+        setError("유효하지 않거나 존재하지 않는 학생 링크입니다.");
+      }
+    }
+    // 2. Admin Portal (/admin or /admin/:adminId)
+    else if (path.startsWith("/admin")) {
+      const isAdminSession = sessionStorage.getItem("isAdminAuthenticated") === "true";
+      const adminUser = students.find(s => s.name === "관리자");
+
+      if (isAdminSession && adminUser) {
+        setSelectedStudent(adminUser);
+        setIsAuthenticated(true);
+        setLoginError(false);
+
+        if (adminId) {
+          const viewedStudent = students.find(s => s.adminId === adminId);
+          if (viewedStudent) {
+            setAdminViewStudent(viewedStudent);
+          } else {
+            setAdminViewStudent(null);
+          }
+        } else {
+          setAdminViewStudent(null);
+        }
+      } else {
+        // No session exists, fallback to home login
+        setIsAuthenticated(false);
+        setSelectedStudent(null);
+        setAdminViewStudent(null);
+        navigate("/");
+      }
+    }
+    // 3. Fallback (Home / Root)
+    else {
+      // If we are at "/" but already have an active session, automatically redirect to correct dashboard
+      const isAdminSession = sessionStorage.getItem("isAdminAuthenticated") === "true";
+      if (isAdminSession) {
+        navigate(adminId ? `/admin/${adminId}` : "/admin");
+      }
+    }
+  }, [students, publicId, adminId, location.pathname, navigate]);
+
   const handleLogin = () => {
     const trimmedInputName = studentNameInput.trim();
     const student = students.find(s => s.name === trimmedInputName);
@@ -219,6 +288,13 @@ export default function App() {
       setSelectedStudent(student);
       setIsAuthenticated(true);
       setLoginError(false);
+
+      if (student.name === "관리자") {
+        sessionStorage.setItem("isAdminAuthenticated", "true");
+        navigate("/admin");
+      } else {
+        navigate(`/student/${student.publicId}`);
+      }
     } else {
       setLoginError(true);
     }
@@ -231,6 +307,8 @@ export default function App() {
     setAdminViewStudent(null);
     setStudentNameInput("");
     setPendingEdits({});
+    sessionStorage.removeItem("isAdminAuthenticated");
+    navigate("/");
   };
 
   const handleEditChange = (unitName: string, itemKey: string, value: string) => {
@@ -521,7 +599,13 @@ export default function App() {
               isAdmin={isAdmin}
               currentViewStudent={currentViewStudent}
               adminViewStudent={adminViewStudent}
-              setAdminViewStudent={setAdminViewStudent}
+              setAdminViewStudent={(student) => {
+                if (student) {
+                  navigate(`/admin/${student.adminId}`);
+                } else {
+                  navigate('/admin');
+                }
+              }}
               students={students}
               classGroups={classGroups}
               selectedClassGroup={selectedClassGroup}
@@ -604,5 +688,19 @@ export default function App() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppContent />} />
+        <Route path="/student/:publicId" element={<AppContent />} />
+        <Route path="/admin" element={<AppContent />} />
+        <Route path="/admin/:adminId" element={<AppContent />} />
+        <Route path="*" element={<AppContent />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

@@ -11,6 +11,8 @@ export interface StudentInfo {
   timetable?: string;
   notice?: string;
   noticeHidden?: boolean;
+  publicId?: string;
+  adminId?: string;
 }
 
 export interface ProgressData {
